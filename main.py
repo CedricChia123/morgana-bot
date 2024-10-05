@@ -27,7 +27,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
-stickerManager = StickerManager('stickers.json')
+stickerManager = StickerManager(os.path.join(os.path.dirname(__file__), 'stickers.json'))
     
 def generate_secret_code():
     return "🔑 Congratz, you found the hidden message! Thank you for using this bot! 🔑"
