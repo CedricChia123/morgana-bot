@@ -23,6 +23,12 @@ class StickerManager:
         random_sticker = random.choice(self.stickers)
         return random_sticker
     
+load_dotenv()
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+stickerManager = StickerManager('stickers.json')
+    
 def generate_secret_code():
     return "🔑 Congratz, you found the hidden message! Thank you for using this bot! 🔑"
 
@@ -57,10 +63,6 @@ async def generate_animal(update: Update, context: ContextTypes.DEFAULT_TYPE, ur
             await update.message.reply_text("The request timed out. Please try again.")
     else:
         await update.message.reply_text(f'Could not fetch an image at this time. Please try again later.')
-
-async def generate_yes_or_no_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    response = random.choice(["Yes", "No"])
-    await update.message.reply_text(response)
 
 async def generate_joke_text(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str):
     response = requests.get(url)
@@ -98,7 +100,8 @@ async def generate_duck(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def generate_yes_or_no(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if await check_for_secret_code(update):
         return
-    await generate_yes_or_no_text(update, context)
+    response = random.choice(["Yes", "No"])
+    await update.message.reply_text(response)
 
 async def generate_joke(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if await check_for_secret_code(update):
@@ -125,12 +128,6 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/flip - Generates yes or no\n"
         "/joke - Generates a random joke\n"
     )
-
-load_dotenv()
-BOT_TOKEN = os.getenv('BOT_TOKEN')
-
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-stickerManager = StickerManager('stickers.json')
 
 app.add_handler(CommandHandler("cat", generate_cat))
 app.add_handler(CommandHandler("dog", generate_dog))
