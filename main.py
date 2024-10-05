@@ -24,7 +24,7 @@ class StickerManager:
         return random_sticker
     
 load_dotenv()
-BOT_TOKEN = os.getenv('BOT_TOKEN')
+BOT_TOKEN = os.getenv('BOT_TOKEN_MORGANA')
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 stickerManager = StickerManager(os.path.join(os.path.dirname(__file__), 'stickers.json'))
