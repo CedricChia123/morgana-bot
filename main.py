@@ -24,8 +24,6 @@ from conversation.yes_or_no_command import yes_or_no_command
 from classes.StickerManager import StickerManager
 from utils.logs import log_info
 
-MY_USER_ID = os.environ.get("MY_USER_ID")
-
 def init_db():
     conn = sqlite3.connect('subscribers.db')
     cursor = conn.cursor()
@@ -65,7 +63,7 @@ async def unsubscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def send_update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    if user_id != MY_USER_ID:
+    if user_id != int(MY_USER_ID):
         await update.message.reply_text("You are not authorized to send updates.")
         return
 
@@ -113,6 +111,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     
 load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN_MORGANA')
+MY_USER_ID = os.getenv('MY_USER_ID')
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 stickerManager = StickerManager(os.path.join(os.path.dirname(__file__), 'assets/duckStickers.json'), os.path.join(os.path.dirname(__file__), 'assets/komaruStickers.json'))
