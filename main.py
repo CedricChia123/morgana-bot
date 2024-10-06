@@ -54,9 +54,8 @@ async def generate_animal(update: Update, context: ContextTypes.DEFAULT_TYPE, ur
     response = requests.get(url)
     if response.status_code == 200:
         image_url = response.json()[0]['url'] if 'cat' in url else response.json()['message']
-        stickerManager.set_link(image_url)
         try:
-            processed_image = process_image(stickerManager.link)
+            processed_image = process_image(image_url)
             sticker_file = InputFile(processed_image, filename="sticker.webp")
             await update.message.reply_sticker(sticker=sticker_file, read_timeout=60)
         except TimedOut:
