@@ -5,15 +5,17 @@ import traceback
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
-from telegram.ext import ApplicationBuilder, CommandHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 from dotenv import load_dotenv
 from telegram.constants import ParseMode
 
+from conversation.wish_command import wish_command
 from conversation.generate_komaru_command import generate_komaru_command
 from conversation.generate_cat_command import generate_cat_command
 from conversation.generate_dog_command import generate_dog_command
 from conversation.generate_duck_command import generate_duck_command
 from conversation.generate_joke_command import generate_joke_command
+from conversation.generate_quote_command import generate_quote_command
 from conversation.help_command import help_command
 from conversation.yes_or_no_command import yes_or_no_command
 from classes.StickerManager import StickerManager
@@ -52,6 +54,8 @@ app.add_handler(CommandHandler("duck", lambda update, context: generate_duck_com
 app.add_handler(CommandHandler("komaru", lambda update, context: generate_komaru_command(stickerManager, update, context)))
 app.add_handler(CommandHandler("flip", yes_or_no_command))
 app.add_handler(CommandHandler("joke", generate_joke_command))
+app.add_handler(CommandHandler("quote", generate_quote_command))
+app.add_handler(CommandHandler("wish", wish_command))
 app.add_handler(CommandHandler("help", help_command))
 app.add_handler(CommandHandler("start", help_command))
 app.add_error_handler(error_handler)

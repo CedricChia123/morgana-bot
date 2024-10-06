@@ -2,10 +2,9 @@ import random
 from telegram import Update
 
 def generate_secret_code():
-    return "🔑 Congratz, you found the hidden message! Thank you for using this bot! 🔑"
+    return "Thank you for using this bots! Please use /wish command to suggest new features~"
 
 async def check_for_secret_code(update: Update):
-    if random.random() < 0.01:  # 1% chance
-        await update.message.reply_text(generate_secret_code())
+    if random.random() < 0.05:  # 5% chance
         return True
     return False
