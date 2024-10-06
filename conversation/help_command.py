@@ -6,8 +6,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await log_info("{}: help".format(update.effective_user.name), update.get_bot())
     await update.message.reply_text(
         f'Hello {update.effective_user.first_name}!\n'
-        "This bot is a stress reliever.\n\n"
+        "This bot is a stress reliever. Consider using /wish command to suggest a new feature!\n\n"
         "Available commands:\n"
+        "/wish <YOUR WISH> - Suggest a new feature\n"
         "/cat - Generates a random cat\n"
         "/dog - Generates a random dog\n"
         "/duck - Generates a duck sticker\n"
@@ -15,5 +16,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/joke - Generates a random joke\n"
         "/komaru - Generates a random komaru cat\n"
         "/quote - Generates a motivational quote\n"
-        "/wish <YOUR WISH> - Suggest a new feature"
+        "/insult - Generates a random insult\n"
+        "/food - Generates a random cuisine"
     )
