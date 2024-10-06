@@ -13,4 +13,5 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/duck - Generates a duck sticker\n"
         "/flip - Generates yes or no\n"
         "/joke - Generates a random joke\n"
+        "/komaru - Generates a random komaru cat"
     )

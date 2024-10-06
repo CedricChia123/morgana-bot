@@ -9,6 +9,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler
 from dotenv import load_dotenv
 from telegram.constants import ParseMode
 
+from conversation.generate_komaru_command import generate_komaru_command
 from conversation.generate_cat_command import generate_cat_command
 from conversation.generate_dog_command import generate_dog_command
 from conversation.generate_duck_command import generate_duck_command
@@ -43,11 +44,12 @@ load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN_MORGANA')
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
-stickerManager = StickerManager(os.path.join(os.path.dirname(__file__), 'assets/duckStickers.json'))
+stickerManager = StickerManager(os.path.join(os.path.dirname(__file__), 'assets/duckStickers.json'), os.path.join(os.path.dirname(__file__), 'assets/komaruStickers.json'))
 
 app.add_handler(CommandHandler("cat", generate_cat_command))
 app.add_handler(CommandHandler("dog", generate_dog_command))
 app.add_handler(CommandHandler("duck", lambda update, context: generate_duck_command(stickerManager, update, context)))
+app.add_handler(CommandHandler("komaru", lambda update, context: generate_komaru_command(stickerManager, update, context)))
 app.add_handler(CommandHandler("flip", yes_or_no_command))
 app.add_handler(CommandHandler("joke", generate_joke_command))
 app.add_handler(CommandHandler("help", help_command))
