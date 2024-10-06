@@ -24,7 +24,7 @@ from conversation.yes_or_no_command import yes_or_no_command
 from classes.StickerManager import StickerManager
 from utils.logs import log_info
 
-MY_USER_ID = os.getenv('MY_USER_ID')
+MY_USER_ID = os.environ.get("MY_USER_ID")
 
 def init_db():
     conn = sqlite3.connect('subscribers.db')
