@@ -28,7 +28,7 @@ from utils.logs import log_info
 
 async def initialize_subscribers_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if user_id != int(MY_USER_ID):
+    if user_id != int(MY_USER_ID) or user_id != int(MY_USER_ID_2):
         await update.message.reply_text("You are not authorized for this command.")
         return
     bot = context.bot
@@ -108,7 +108,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     
 async def send_update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    if user_id != int(MY_USER_ID):
+    if user_id != int(MY_USER_ID) or user_id != int(MY_USER_ID_2):
         await update.message.reply_text("You are not authorized to send updates.")
         return
 
@@ -132,6 +132,7 @@ async def send_update_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN_MORGANA')
 MY_USER_ID = os.getenv('MY_USER_ID')
+MY_USER_ID_2 = os.getenv('MY_USER_ID_2')
 SUBSCRIBER_CHAT_ID = os.environ.get("LOG_ID")
 SUBSCRIBER_MESSAGE_ID = None
 
