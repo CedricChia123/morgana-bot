@@ -1,11 +1,9 @@
 import html
 import json
 import os
-import sqlite3
 import traceback
 import logging
 
-import psycopg2
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
@@ -27,60 +25,46 @@ from conversation.generate_roll_command import generate_roll_command
 from classes.StickerManager import StickerManager
 from utils.logs import log_info
 
-def init_db():
-    conn = psycopg2.connect(
-        dbname=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        host=os.getenv('DB_HOST'),
-        port=os.getenv('DB_PORT')
-    )
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS subscribers (
-            user_id BIGINT PRIMARY KEY
-        )
-    ''')
-    conn.commit()
-    conn.close()
+SUBSCRIBER_FILE = os.path.join(os.path.dirname(__file__), 'assets/subscribers.json')
+
+def load_subscribers():
+    """Load subscribers from the JSON file."""
+    if os.path.exists(SUBSCRIBER_FILE):
+        with open(SUBSCRIBER_FILE, "r") as f:
+            return set(json.load(f))
+    return set()
+
+def save_subscribers(subscribers):
+    """Save subscribers to the JSON file."""
+    with open(SUBSCRIBER_FILE, "w") as f:
+        json.dump(list(subscribers), f)
+
+# Load the subscriber data from the file
+subscribers = load_subscribers()
 
 async def subscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     user_name = update.effective_user.name
 
-    conn = psycopg2.connect(
-        dbname=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        host=os.getenv('DB_HOST'),
-        port=os.getenv('DB_PORT')
-    )
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO subscribers (user_id) VALUES (%s) ON CONFLICT DO NOTHING", (user_id,))
-    conn.commit()
-    conn.close()
-
-    await log_info(f"{user_name} ID: {user_id} subscribed", update.get_bot())
-    await update.message.reply_text(f"Thank you, {user_name}! You are now subscribed for updates.")
+    if user_id not in subscribers:
+        subscribers.add(user_id)
+        save_subscribers(subscribers)  # Save after adding a new subscriber
+        await log_info(f"{user_name} ID: {user_id} subscribed", update.get_bot())
+        await update.message.reply_text(f"Thank you, {user_name}! You are now subscribed for updates.")
+    else:
+        await update.message.reply_text(f"{user_name}, you are already subscribed!")
 
 async def unsubscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     user_name = update.effective_user.name
 
-    conn = psycopg2.connect(
-        dbname=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        host=os.getenv('DB_HOST'),
-        port=os.getenv('DB_PORT')
-    )
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM subscribers WHERE user_id = %s", (user_id,))
-    conn.commit()
-    conn.close()
-
-    await log_info(f"{user_name} ID: {user_id} unsubscribed", update.get_bot())
-    await update.message.reply_text(f"Aww, you have been unsubscribed from updates, {user_name}.")
+    if user_id in subscribers:
+        subscribers.remove(user_id)
+        save_subscribers(subscribers)  # Save after removing a subscriber
+        await log_info(f"{user_name} ID: {user_id} unsubscribed", update.get_bot())
+        await update.message.reply_text(f"Aww, you have been unsubscribed from updates, {user_name}.")
+    else:
+        await update.message.reply_text(f"{user_name}, you are not subscribed!")
 
 async def send_update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
@@ -95,25 +79,29 @@ async def send_update_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     update_message = " ".join(context.args)
     await log_info("Sending updates to all subscribed users.", bot)
 
-    conn = psycopg2.connect(
-        dbname=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        host=os.getenv('DB_HOST'),
-        port=os.getenv('DB_PORT')
-    )
-    cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM subscribers")
-    subscribed_users = cursor.fetchall()
-    conn.close()
-
-    for user_id_tuple in subscribed_users:
-        subscriber_id = user_id_tuple[0]
+    for subscriber_id in subscribers:
         try:
             await bot.send_message(chat_id=subscriber_id, text=update_message)
         except Exception as e:
             await log_info(f"Failed to send message to {subscriber_id}: {e}", bot)
+    
     await update.message.reply_text("Update has been sent to all subscribers.")
+
+async def show_subscribers_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+
+    if user_id != int(MY_USER_ID):
+        await update.message.reply_text("You are not authorized to view the list of subscribers.")
+        return
+
+    if not subscribers:
+        await update.message.reply_text("There are no subscribers.")
+        return
+
+    subscriber_list = sorted(list(subscribers))
+    subscriber_ids = "\n".join([str(sub_id) for sub_id in subscriber_list])
+
+    await update.message.reply_text(f"List of subscribers (User IDs):\n{subscriber_ids}")
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
@@ -144,7 +132,6 @@ MY_USER_ID = os.getenv('MY_USER_ID')
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 stickerManager = StickerManager(os.path.join(os.path.dirname(__file__), 'assets/duckStickers.json'), os.path.join(os.path.dirname(__file__), 'assets/komaruStickers.json'))
 
-init_db()
 app.add_handler(CommandHandler("cat", generate_cat_command))
 app.add_handler(CommandHandler("dog", generate_dog_command))
 app.add_handler(CommandHandler("duck", lambda update, context: generate_duck_command(stickerManager, update, context)))
@@ -161,6 +148,7 @@ app.add_handler(CommandHandler("roll", generate_roll_command))
 app.add_handler(CommandHandler("help", help_command))
 app.add_handler(CommandHandler("start", help_command))
 app.add_handler(CommandHandler("send_update", send_update_command))
+app.add_handler(CommandHandler("show_subscribers", show_subscribers_command))
 app.add_error_handler(error_handler)
 
 app.run_polling()
