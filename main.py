@@ -4,6 +4,8 @@ import os
 import sqlite3
 import traceback
 import logging
+
+import psycopg2
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
@@ -21,15 +23,22 @@ from conversation.generate_joke_command import generate_joke_command
 from conversation.generate_quote_command import generate_quote_command
 from conversation.help_command import help_command
 from conversation.yes_or_no_command import yes_or_no_command
+from conversation.generate_roll_command import generate_roll_command
 from classes.StickerManager import StickerManager
 from utils.logs import log_info
 
 def init_db():
-    conn = sqlite3.connect('subscribers.db')
+    conn = psycopg2.connect(
+        dbname=os.getenv('DB_NAME'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        host=os.getenv('DB_HOST'),
+        port=os.getenv('DB_PORT')
+    )
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS subscribers (
-            user_id INTEGER PRIMARY KEY
+            user_id BIGINT PRIMARY KEY
         )
     ''')
     conn.commit()
@@ -38,11 +47,19 @@ def init_db():
 async def subscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     user_name = update.effective_user.name
-    conn = sqlite3.connect('subscribers.db')
+
+    conn = psycopg2.connect(
+        dbname=os.getenv('DB_NAME'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        host=os.getenv('DB_HOST'),
+        port=os.getenv('DB_PORT')
+    )
     cursor = conn.cursor()
-    cursor.execute("INSERT OR IGNORE INTO subscribers (user_id) VALUES (?)", (user_id,))
+    cursor.execute("INSERT INTO subscribers (user_id) VALUES (%s) ON CONFLICT DO NOTHING", (user_id,))
     conn.commit()
     conn.close()
+
     await log_info(f"{user_name} ID: {user_id} subscribed", update.get_bot())
     await update.message.reply_text(f"Thank you, {user_name}! You are now subscribed for updates.")
 
@@ -50,15 +67,19 @@ async def unsubscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = update.effective_user.id
     user_name = update.effective_user.name
 
-    conn = sqlite3.connect('subscribers.db')
+    conn = psycopg2.connect(
+        dbname=os.getenv('DB_NAME'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        host=os.getenv('DB_HOST'),
+        port=os.getenv('DB_PORT')
+    )
     cursor = conn.cursor()
-
-    cursor.execute("DELETE FROM subscribers WHERE user_id = ?", (user_id,))
+    cursor.execute("DELETE FROM subscribers WHERE user_id = %s", (user_id,))
     conn.commit()
     conn.close()
 
     await log_info(f"{user_name} ID: {user_id} unsubscribed", update.get_bot())
-
     await update.message.reply_text(f"Aww, you have been unsubscribed from updates, {user_name}.")
 
 async def send_update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -73,7 +94,14 @@ async def send_update_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
     update_message = " ".join(context.args)
     await log_info("Sending updates to all subscribed users.", bot)
-    conn = sqlite3.connect('subscribers.db')
+
+    conn = psycopg2.connect(
+        dbname=os.getenv('DB_NAME'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        host=os.getenv('DB_HOST'),
+        port=os.getenv('DB_PORT')
+    )
     cursor = conn.cursor()
     cursor.execute("SELECT user_id FROM subscribers")
     subscribed_users = cursor.fetchall()
@@ -129,6 +157,7 @@ app.add_handler(CommandHandler("insult", generate_insult_command))
 app.add_handler(CommandHandler("subscribe", subscribe_command))
 app.add_handler(CommandHandler("unsubscribe", unsubscribe_command))
 app.add_handler(CommandHandler("food", generate_food_command))
+app.add_handler(CommandHandler("roll", generate_roll_command))
 app.add_handler(CommandHandler("help", help_command))
 app.add_handler(CommandHandler("start", help_command))
 app.add_handler(CommandHandler("send_update", send_update_command))
