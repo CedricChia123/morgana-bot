@@ -10,6 +10,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from dotenv import load_dotenv
 from telegram.constants import ParseMode
 
+from conversation.code_command import code_command
 from conversation.generate_food_command import generate_food_command
 from conversation.generate_insult_command import generate_insult_command
 from conversation.wish_command import wish_command
@@ -152,6 +153,7 @@ app.add_handler(CommandHandler("food", generate_food_command))
 app.add_handler(CommandHandler("roll", generate_roll_command))
 app.add_handler(CommandHandler("help", help_command))
 app.add_handler(CommandHandler("start", help_command))
+app.add_handler(CommandHandler("code", code_command))
 app.add_handler(CommandHandler("send_update", send_update_command))
 app.add_handler(CommandHandler("initialize_subscribers", initialize_subscribers_message))
 app.add_error_handler(error_handler)

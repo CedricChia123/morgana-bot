@@ -2,7 +2,11 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from utils.logs import log_info
 
+from utils.generate_code import check_for_secret_code
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await check_for_secret_code(update):
+        return
     await log_info("{}: help".format(update.effective_user.name), update.get_bot())
     await update.message.reply_text(
         f'Hello {update.effective_user.first_name}!\n'
@@ -20,5 +24,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/food - Generates a random cuisine\n"
         "/roll - Rolls a dice\n"
         "/subscribe - Subscribe for bot updates\n"
-        "/unsubscribe - Unsubscribe from bot updates"
+        "/unsubscribe - Unsubscribe from bot updates\n"
+        "/code - Submit a code"
     )
