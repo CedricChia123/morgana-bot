@@ -25,83 +25,63 @@ from conversation.generate_roll_command import generate_roll_command
 from classes.StickerManager import StickerManager
 from utils.logs import log_info
 
-SUBSCRIBER_FILE = os.path.join(os.path.dirname(__file__), 'assets/subscribers.json')
+async def initialize_subscribers_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != int(MY_USER_ID):
+        await update.message.reply_text("You are not authorized for this command.")
+        return
+    bot = context.bot
+    initial_subscribers = '[]'
+    subscriber_message = await bot.send_message(chat_id=SUBSCRIBER_CHAT_ID, text=initial_subscribers)
+    await log_info(f"message id is {str(subscriber_message.message_id)}", update.get_bot())
 
-def load_subscribers():
-    """Load subscribers from the JSON file."""
-    if os.path.exists(SUBSCRIBER_FILE):
-        with open(SUBSCRIBER_FILE, "r") as f:
-            return set(json.load(f))
-    return set()
+async def load_subscribers(context: ContextTypes.DEFAULT_TYPE):
+    """Load subscribers from a message in the chat."""
+    bot = context.bot
+    try:
+        message_id = int(os.getenv("SUBSCRIBER_MESSAGE_ID"))
+        subscriber_message = await bot.forward_message(chat_id=SUBSCRIBER_CHAT_ID, from_chat_id=SUBSCRIBER_CHAT_ID, message_id=message_id)
+        subscribers = set(json.loads(subscriber_message.text))
+        return subscribers
+    except Exception as e:
+        logging.error(f"Failed to load subscribers: {e}")
+        return set()
 
-def save_subscribers(subscribers):
-    """Save subscribers to the JSON file."""
-    with open(SUBSCRIBER_FILE, "w") as f:
-        json.dump(list(subscribers), f)
-
-# Load the subscriber data from the file
-subscribers = load_subscribers()
+async def save_subscribers(subscribers, context: ContextTypes.DEFAULT_TYPE):
+    """Save the list of subscribers to the message."""
+    bot = context.bot
+    try:
+        subscribers_data = json.dumps(list(subscribers))
+        message_id = int(os.getenv("SUBSCRIBER_MESSAGE_ID"))
+        await bot.edit_message_text(chat_id=SUBSCRIBER_CHAT_ID, message_id=message_id, text=subscribers_data)
+    except Exception as e:
+        logging.error(f"Failed to save subscribers: {e}")
 
 async def subscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    subscribers = await load_subscribers(context)
     user_id = update.effective_user.id
     user_name = update.effective_user.name
 
     if user_id not in subscribers:
         subscribers.add(user_id)
-        save_subscribers(subscribers)  # Save after adding a new subscriber
+        await save_subscribers(subscribers, context)
         await log_info(f"{user_name} ID: {user_id} subscribed", update.get_bot())
         await update.message.reply_text(f"Thank you, {user_name}! You are now subscribed for updates.")
     else:
         await update.message.reply_text(f"{user_name}, you are already subscribed!")
 
 async def unsubscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    subscribers = await load_subscribers(context)
     user_id = update.effective_user.id
     user_name = update.effective_user.name
 
     if user_id in subscribers:
         subscribers.remove(user_id)
-        save_subscribers(subscribers)  # Save after removing a subscriber
+        await save_subscribers(subscribers, context)
         await log_info(f"{user_name} ID: {user_id} unsubscribed", update.get_bot())
         await update.message.reply_text(f"Aww, you have been unsubscribed from updates, {user_name}.")
     else:
         await update.message.reply_text(f"{user_name}, you are not subscribed!")
-
-async def send_update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = update.effective_user.id
-    if user_id != int(MY_USER_ID):
-        await update.message.reply_text("You are not authorized to send updates.")
-        return
-
-    bot = update.get_bot()
-    if not context.args:
-        await update.message.reply_text("Please provide the update message after the command, e.g., `/send_update Your message here`.")
-        return
-    update_message = " ".join(context.args)
-    await log_info("Sending updates to all subscribed users.", bot)
-
-    for subscriber_id in subscribers:
-        try:
-            await bot.send_message(chat_id=subscriber_id, text=update_message)
-        except Exception as e:
-            await log_info(f"Failed to send message to {subscriber_id}: {e}", bot)
-    
-    await update.message.reply_text("Update has been sent to all subscribers.")
-
-async def show_subscribers_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = update.effective_user.id
-
-    if user_id != int(MY_USER_ID):
-        await update.message.reply_text("You are not authorized to view the list of subscribers.")
-        return
-
-    if not subscribers:
-        await update.message.reply_text("There are no subscribers.")
-        return
-
-    subscriber_list = sorted(list(subscribers))
-    subscriber_ids = "\n".join([str(sub_id) for sub_id in subscriber_list])
-
-    await update.message.reply_text(f"List of subscribers (User IDs):\n{subscriber_ids}")
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
@@ -125,9 +105,34 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     await bot.send_message(os.environ.get("LOG_ID"), stack, parse_mode=ParseMode.HTML)
     await bot.send_message(update.effective_chat.id, "Morgana encountered an error, please try again or cancel the current operation with the cancel command")
     
+async def send_update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    if user_id != int(MY_USER_ID):
+        await update.message.reply_text("You are not authorized to send updates.")
+        return
+
+    bot = update.get_bot()
+    if not context.args:
+        await update.message.reply_text("Please provide the update message after the command, e.g., `/send_update Your message here`.")
+        return
+
+    update_message = " ".join(context.args)
+    subscribers = await load_subscribers(context)
+    await log_info("Sending updates to all subscribed users.", bot)
+
+    for subscriber_id in subscribers:
+        try:
+            await bot.send_message(chat_id=subscriber_id, text=update_message)
+        except Exception as e:
+            await log_info(f"Failed to send message to {subscriber_id}: {e}", bot)
+
+    await update.message.reply_text("Update has been sent to all subscribers.")
+
 load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN_MORGANA')
 MY_USER_ID = os.getenv('MY_USER_ID')
+SUBSCRIBER_CHAT_ID = os.environ.get("LOG_ID")
+SUBSCRIBER_MESSAGE_ID = None
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 stickerManager = StickerManager(os.path.join(os.path.dirname(__file__), 'assets/duckStickers.json'), os.path.join(os.path.dirname(__file__), 'assets/komaruStickers.json'))
@@ -148,7 +153,7 @@ app.add_handler(CommandHandler("roll", generate_roll_command))
 app.add_handler(CommandHandler("help", help_command))
 app.add_handler(CommandHandler("start", help_command))
 app.add_handler(CommandHandler("send_update", send_update_command))
-app.add_handler(CommandHandler("show_subscribers", show_subscribers_command))
+app.add_handler(CommandHandler("initialize_subscribers", initialize_subscribers_message))
 app.add_error_handler(error_handler)
 
 app.run_polling()
