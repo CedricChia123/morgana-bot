@@ -13,6 +13,7 @@ async def code_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await log_info(f"{user.name} entered the correct code: {user_code}", bot)
             await update.message.reply_text(f"Congratz! You entered the correct code.")
         else:
+            await log_info(f"{user.name} entered the wrong code: {user_code}", bot)
             await update.message.reply_text("Womp womp, the code you entered is incorrect.")
     else:
         await update.message.reply_text("Please enter a code after the /code command, e.g., `/code 1234ABC`.")
