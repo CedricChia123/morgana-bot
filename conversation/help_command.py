@@ -17,5 +17,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/komaru - Generates a random komaru cat\n"
         "/quote - Generates a motivational quote\n"
         "/insult - Generates a random insult\n"
-        "/food - Generates a random cuisine"
+        "/food - Generates a random cuisine\n"
+        "/roll - Rolls a dice\n"
+        "/subscribe - Subscribe for bot updates\n"
+        "/unsubscribe - Unsubscribe from bot updates"
     )
